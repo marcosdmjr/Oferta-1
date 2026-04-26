@@ -66,5 +66,114 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/CSSRulePlugin.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://kit.fontawesome.com/e4e8e4da22.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- DEV NAV: visível apenas em localhost -->
+  <script>
+    (function () {
+      var DEV_HOSTS = ['localhost', '127.0.0.1'];
+      if (!DEV_HOSTS.includes(location.hostname)) return;
+
+      var ROUTES = [
+        { label: '1. Landing',       path: '/' },
+        { label: '2. VSL (v2)',       path: '/v2' },
+        { label: '3. Envio de Dados', path: '/enviodosdados' },
+        { label: '4. Assinatura',     path: '/assinatura-poder' },
+        { label: '5. Gerar Ass.',     path: '/g-ass' },
+        { label: '6. Obrigado',       path: '/obrigado-correio' },
+      ];
+
+      function currentIndex() {
+        var p = location.pathname;
+        for (var i = 0; i < ROUTES.length; i++) {
+          if (ROUTES[i].path === p) return i;
+        }
+        return -1;
+      }
+
+      function navigate(delta) {
+        var idx = currentIndex() + delta;
+        if (idx < 0) idx = 0;
+        if (idx >= ROUTES.length) idx = ROUTES.length - 1;
+        location.href = ROUTES[idx].path;
+      }
+
+      function render() {
+        var idx = currentIndex();
+        var label = idx >= 0 ? ROUTES[idx].label : location.pathname;
+
+        bar.querySelector('#dev-prev').disabled = idx <= 0;
+        bar.querySelector('#dev-next').disabled = idx >= ROUTES.length - 1 || idx === -1;
+        bar.querySelector('#dev-label').textContent = label;
+
+        var sel = bar.querySelector('#dev-select');
+        sel.innerHTML = '';
+        ROUTES.forEach(function (r, i) {
+          var opt = document.createElement('option');
+          opt.value = r.path;
+          opt.textContent = r.label;
+          if (i === idx) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+
+      var bar = document.createElement('div');
+      bar.id = 'dev-nav-bar';
+      bar.innerHTML = [
+        '<style>',
+        '#dev-nav-bar{',
+        '  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);',
+        '  display:flex;align-items:center;gap:8px;',
+        '  background:rgba(15,15,15,.92);backdrop-filter:blur(8px);',
+        '  border:1px solid rgba(255,255,255,.12);border-radius:40px;',
+        '  padding:8px 16px;z-index:999999;',
+        '  font-family:monospace;font-size:12px;color:#e0e0e0;',
+        '  box-shadow:0 4px 24px rgba(0,0,0,.5);',
+        '  user-select:none;',
+        '}',
+        '#dev-nav-bar button{',
+        '  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);',
+        '  color:#fff;border-radius:50%;width:28px;height:28px;',
+        '  display:flex;align-items:center;justify-content:center;',
+        '  cursor:pointer;font-size:14px;transition:background .15s;padding:0;',
+        '}',
+        '#dev-nav-bar button:hover:not(:disabled){background:rgba(255,255,255,.22);}',
+        '#dev-nav-bar button:disabled{opacity:.3;cursor:default;}',
+        '#dev-label{min-width:130px;text-align:center;color:#facc15;font-weight:bold;}',
+        '#dev-select{',
+        '  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);',
+        '  color:#e0e0e0;border-radius:20px;padding:3px 10px;',
+        '  font-family:monospace;font-size:12px;cursor:pointer;',
+        '}',
+        '#dev-badge{',
+        '  background:#facc15;color:#000;font-size:10px;font-weight:bold;',
+        '  border-radius:20px;padding:2px 8px;letter-spacing:.05em;',
+        '}',
+        '</style>',
+        '<span id="dev-badge">DEV</span>',
+        '<button id="dev-prev" title="Voltar">&#8592;</button>',
+        '<span id="dev-label"></span>',
+        '<button id="dev-next" title="Avançar">&#8594;</button>',
+        '<select id="dev-select" title="Ir para sessão"></select>',
+      ].join('');
+
+      document.body.appendChild(bar);
+
+      bar.querySelector('#dev-prev').addEventListener('click', function () { navigate(-1); });
+      bar.querySelector('#dev-next').addEventListener('click', function () { navigate(1); });
+      bar.querySelector('#dev-select').addEventListener('change', function () {
+        location.href = this.value;
+      });
+
+      render();
+
+      // re-render quando o Vue Router mudar a rota (history mode)
+      var _pushState = history.pushState;
+      history.pushState = function () {
+        _pushState.apply(history, arguments);
+        setTimeout(render, 50);
+      };
+      window.addEventListener('popstate', function () { setTimeout(render, 50); });
+    })();
+  </script>
 </body>
 </html>
