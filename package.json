@@ -1,0 +1,14 @@
+{
+  "name": "leitura-xamanica",
+  "version": "1.0.0",
+  "description": "Funil Leitura Xamânica",
+  "main": "serve.js",
+  "scripts": {
+    "start": "node serve.js",
+    "dev": "node serve.js",
+    "build": "echo 'Projeto já compilado, nenhum build necessário.'"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
