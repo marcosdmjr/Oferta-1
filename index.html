@@ -99,7 +99,7 @@
         var idx = currentIndex() + delta;
         if (idx < 0) idx = 0;
         if (idx >= ROUTES.length) idx = ROUTES.length - 1;
-        location.href = ROUTES[idx].path;
+        location.href = ROUTES[idx].path + location.search;
       }
 
       var bar;
@@ -170,7 +170,7 @@
       bar.querySelector('#dev-prev').addEventListener('click', function () { navigate(-1); });
       bar.querySelector('#dev-next').addEventListener('click', function () { navigate(1); });
       bar.querySelector('#dev-select').addEventListener('change', function () {
-        location.href = this.value;
+        location.href = this.value + location.search;
       });
 
       render();
