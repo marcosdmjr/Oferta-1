@@ -67,7 +67,7 @@
   <script src="https://kit.fontawesome.com/e4e8e4da22.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- DEV NAV: visível apenas em ambiente de desenvolvimento -->
+  <!-- DEV NAV -->
   <script>
     (function () {
       var h = location.hostname;
@@ -79,13 +79,18 @@
       if (!isDev) return;
 
       var ROUTES = [
-        { label: '1. Landing',       path: '/' },
-        { label: '2. VSL (v2)',       path: '/v2' },
+        { label: '1. Landing',        path: '/' },
+        { label: '2. VSL',            path: '/v2' },
         { label: '3. Envio de Dados', path: '/enviodosdados' },
         { label: '4. Assinatura',     path: '/assinatura-poder' },
         { label: '5. Gerar Ass.',     path: '/g-ass' },
         { label: '6. Obrigado',       path: '/obrigado-correio' },
       ];
+
+      function getRouter() {
+        var el = document.getElementById('app');
+        return el && el.__vue__ && el.__vue__.$router;
+      }
 
       function currentIndex() {
         var p = location.pathname;
@@ -95,100 +100,131 @@
         return -1;
       }
 
+      function goTo(path) {
+        var router = getRouter();
+        if (router) {
+          router.push(path).catch(function(){});
+        } else {
+          location.href = path;
+        }
+      }
+
       function navigate(delta) {
         var idx = currentIndex() + delta;
         if (idx < 0) idx = 0;
         if (idx >= ROUTES.length) idx = ROUTES.length - 1;
-        location.href = ROUTES[idx].path + location.search;
+        goTo(ROUTES[idx].path);
       }
 
-      var bar;
-
       function render() {
-        if (!bar) return;
         var idx = currentIndex();
         var label = idx >= 0 ? ROUTES[idx].label : location.pathname;
-
-        bar.querySelector('#dev-prev').disabled = idx <= 0;
-        bar.querySelector('#dev-next').disabled = idx >= ROUTES.length - 1 || idx === -1;
-        bar.querySelector('#dev-label').textContent = label;
-
-        var sel = bar.querySelector('#dev-select');
-        sel.innerHTML = '';
-        ROUTES.forEach(function (r, i) {
-          var opt = document.createElement('option');
-          opt.value = r.path;
-          opt.textContent = r.label;
-          if (i === idx) opt.selected = true;
-          sel.appendChild(opt);
-        });
+        document.getElementById('dev-label').textContent = label;
+        document.getElementById('dev-prev').disabled = idx <= 0;
+        document.getElementById('dev-next').disabled = idx >= ROUTES.length - 1 || idx < 0;
+        var sel = document.getElementById('dev-select');
+        if (sel) sel.value = ROUTES[idx] ? ROUTES[idx].path : '';
       }
 
       function init() {
-      bar = document.createElement('div');
-      bar.id = 'dev-nav-bar';
-      bar.innerHTML = [
-        '<style>',
-        '#dev-nav-bar{',
-        '  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);',
-        '  display:flex;align-items:center;gap:8px;',
-        '  background:rgba(15,15,15,.92);backdrop-filter:blur(8px);',
-        '  border:1px solid rgba(255,255,255,.12);border-radius:40px;',
-        '  padding:8px 16px;z-index:999999;',
-        '  font-family:monospace;font-size:12px;color:#e0e0e0;',
-        '  box-shadow:0 4px 24px rgba(0,0,0,.5);',
-        '  user-select:none;',
-        '}',
-        '#dev-nav-bar button{',
-        '  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);',
-        '  color:#fff;border-radius:50%;width:28px;height:28px;',
-        '  display:flex;align-items:center;justify-content:center;',
-        '  cursor:pointer;font-size:14px;transition:background .15s;padding:0;',
-        '}',
-        '#dev-nav-bar button:hover:not(:disabled){background:rgba(255,255,255,.22);}',
-        '#dev-nav-bar button:disabled{opacity:.3;cursor:default;}',
-        '#dev-label{min-width:130px;text-align:center;color:#facc15;font-weight:bold;}',
-        '#dev-select{',
-        '  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);',
-        '  color:#e0e0e0;border-radius:20px;padding:3px 10px;',
-        '  font-family:monospace;font-size:12px;cursor:pointer;',
-        '}',
-        '#dev-badge{',
-        '  background:#facc15;color:#000;font-size:10px;font-weight:bold;',
-        '  border-radius:20px;padding:2px 8px;letter-spacing:.05em;',
-        '}',
-        '</style>',
-        '<span id="dev-badge">DEV</span>',
-        '<button id="dev-prev" title="Voltar">&#8592;</button>',
-        '<span id="dev-label"></span>',
-        '<button id="dev-next" title="Avançar">&#8594;</button>',
-        '<select id="dev-select" title="Ir para sessão"></select>',
-      ].join('');
+        if (document.getElementById('dev-nav-bar')) return;
 
-      document.body.appendChild(bar);
+        var style = document.createElement('style');
+        style.textContent = [
+          '#dev-nav-bar{',
+          '  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);',
+          '  display:flex;align-items:center;gap:8px;',
+          '  background:rgba(10,10,10,.95);backdrop-filter:blur(10px);',
+          '  border:1px solid rgba(255,255,255,.15);border-radius:40px;',
+          '  padding:8px 18px;z-index:2147483647;',
+          '  font-family:ui-monospace,monospace;font-size:12px;color:#e0e0e0;',
+          '  box-shadow:0 4px 32px rgba(0,0,0,.6);',
+          '  user-select:none;white-space:nowrap;',
+          '}',
+          '#dev-nav-bar button{',
+          '  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);',
+          '  color:#fff;border-radius:50%;width:30px;height:30px;',
+          '  display:flex;align-items:center;justify-content:center;',
+          '  cursor:pointer;font-size:15px;line-height:1;padding:0;flex-shrink:0;',
+          '  transition:background .15s;',
+          '}',
+          '#dev-nav-bar button:hover:not(:disabled){background:rgba(255,255,255,.28);}',
+          '#dev-nav-bar button:disabled{opacity:.25;cursor:not-allowed;}',
+          '#dev-label{min-width:140px;text-align:center;color:#fbbf24;font-weight:700;font-size:12px;}',
+          '#dev-select{',
+          '  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);',
+          '  color:#e0e0e0;border-radius:20px;padding:4px 10px;',
+          '  font-family:ui-monospace,monospace;font-size:11px;cursor:pointer;',
+          '  max-width:160px;',
+          '}',
+          '#dev-badge{',
+          '  background:#fbbf24;color:#000;font-size:10px;font-weight:800;',
+          '  border-radius:20px;padding:2px 8px;letter-spacing:.08em;flex-shrink:0;',
+          '}',
+        ].join('');
+        document.head.appendChild(style);
 
-      bar.querySelector('#dev-prev').addEventListener('click', function () { navigate(-1); });
-      bar.querySelector('#dev-next').addEventListener('click', function () { navigate(1); });
-      bar.querySelector('#dev-select').addEventListener('change', function () {
-        location.href = this.value + location.search;
-      });
+        var bar = document.createElement('div');
+        bar.id = 'dev-nav-bar';
 
-      render();
+        var badge = document.createElement('span');
+        badge.id = 'dev-badge';
+        badge.textContent = 'DEV';
 
-      // re-render quando o Vue Router mudar a rota (history mode)
-      var _pushState = history.pushState;
-      history.pushState = function () {
-        _pushState.apply(history, arguments);
-        setTimeout(render, 50);
-      };
-      window.addEventListener('popstate', function () { setTimeout(render, 50); });
-      } // end init
+        var btnPrev = document.createElement('button');
+        btnPrev.id = 'dev-prev';
+        btnPrev.title = 'Etapa anterior';
+        btnPrev.innerHTML = '&#8592;';
 
-      if (document.body) {
-        init();
-      } else {
-        document.addEventListener('DOMContentLoaded', init);
+        var lbl = document.createElement('span');
+        lbl.id = 'dev-label';
+
+        var btnNext = document.createElement('button');
+        btnNext.id = 'dev-next';
+        btnNext.title = 'Próxima etapa';
+        btnNext.innerHTML = '&#8594;';
+
+        var sel = document.createElement('select');
+        sel.id = 'dev-select';
+        sel.title = 'Ir para etapa';
+        ROUTES.forEach(function(r) {
+          var opt = document.createElement('option');
+          opt.value = r.path;
+          opt.textContent = r.label;
+          sel.appendChild(opt);
+        });
+
+        bar.appendChild(badge);
+        bar.appendChild(btnPrev);
+        bar.appendChild(lbl);
+        bar.appendChild(btnNext);
+        bar.appendChild(sel);
+        document.body.appendChild(bar);
+
+        btnPrev.addEventListener('click', function(e) { e.stopPropagation(); navigate(-1); });
+        btnNext.addEventListener('click', function(e) { e.stopPropagation(); navigate(1); });
+        sel.addEventListener('change', function(e) { goTo(this.value); });
+
+        render();
+
+        // Atualiza label quando o Vue Router muda de rota
+        var _push = history.pushState.bind(history);
+        history.pushState = function() { _push.apply(history, arguments); setTimeout(render, 80); };
+        var _replace = history.replaceState.bind(history);
+        history.replaceState = function() { _replace.apply(history, arguments); setTimeout(render, 80); };
+        window.addEventListener('popstate', function() { setTimeout(render, 80); });
       }
+
+      // Aguarda o DOM estar pronto e depois o Vue montar
+      function tryInit() {
+        if (document.body) {
+          init();
+        } else {
+          document.addEventListener('DOMContentLoaded', init);
+        }
+      }
+
+      tryInit();
     })();
   </script>
 </body>
