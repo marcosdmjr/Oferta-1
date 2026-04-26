@@ -67,11 +67,16 @@
   <script src="https://kit.fontawesome.com/e4e8e4da22.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-  <!-- DEV NAV: visível apenas em localhost -->
+  <!-- DEV NAV: visível apenas em ambiente de desenvolvimento -->
   <script>
     (function () {
-      var DEV_HOSTS = ['localhost', '127.0.0.1'];
-      if (!DEV_HOSTS.includes(location.hostname)) return;
+      var h = location.hostname;
+      var isDev = h === 'localhost' || h === '127.0.0.1' ||
+                  h.indexOf('webcontainer') !== -1 ||
+                  h.indexOf('stackblitz') !== -1 ||
+                  h.indexOf('.local') !== -1 ||
+                  location.search.indexOf('dev=1') !== -1;
+      if (!isDev) return;
 
       var ROUTES = [
         { label: '1. Landing',       path: '/' },
@@ -97,7 +102,10 @@
         location.href = ROUTES[idx].path;
       }
 
+      var bar;
+
       function render() {
+        if (!bar) return;
         var idx = currentIndex();
         var label = idx >= 0 ? ROUTES[idx].label : location.pathname;
 
@@ -116,7 +124,8 @@
         });
       }
 
-      var bar = document.createElement('div');
+      function init() {
+      bar = document.createElement('div');
       bar.id = 'dev-nav-bar';
       bar.innerHTML = [
         '<style>',
@@ -173,6 +182,13 @@
         setTimeout(render, 50);
       };
       window.addEventListener('popstate', function () { setTimeout(render, 50); });
+      } // end init
+
+      if (document.body) {
+        init();
+      } else {
+        document.addEventListener('DOMContentLoaded', init);
+      }
     })();
   </script>
 </body>
