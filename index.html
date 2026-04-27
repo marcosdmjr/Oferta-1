@@ -88,7 +88,7 @@
         { step: 5,   label: 'Ano',          set: function(vm) { vm.decadeValue = vm.decadeValue || 1990; vm.currentStep = 5; if (typeof vm.generatorYears === 'function') vm.generatorYears(); } },
         { step: 6,   label: 'Estado Civil', set: function(vm) { vm.yearValue = vm.yearValue || 1995; vm.currentStep = 6; } },
         { step: 7,   label: 'Desafio',      set: function(vm) { vm.civilStatusValue = vm.civilStatusValue || 'solteiro'; vm.currentStep = 7; } },
-        { step: 8,   label: 'Nome',         set: function(vm) { vm.desafioValue = vm.desafioValue || 'amor'; vm.currentStep = 8; } },
+        { step: 8,   label: 'Nome',         set: function(vm) { vm.desafioValue = vm.desafioValue || 'amor'; vm.currentStep = 8; }, last: true },
       ];
 
       // Rotas do funil (páginas diferentes)
@@ -178,19 +178,17 @@
         if (isQuizRoute()) {
           var vm = getVm();
           if (!vm) { alert('Vue ainda não montou. Aguarde a página carregar.'); return; }
-          var si = currentStepIndex() + delta;
-          if (si < 0) {
-            // voltar da rota /: vai para a rota anterior (não há nenhuma antes, mas trata por segurança)
-            si = 0;
-            STEPS[si].set(vm);
-            setTimeout(updateLabel, 80);
-          } else if (si >= STEPS.length) {
-            // avançar além do último step: vai para a próxima rota
-            location.href = ROUTES[1].path; // /v2
-          } else {
-            STEPS[si].set(vm);
-            setTimeout(updateLabel, 80);
+          var si = currentStepIndex();
+          // Se estamos no último step e avançando, pula direto para a próxima rota
+          if (delta > 0 && si >= 0 && STEPS[si].last) {
+            location.href = ROUTES[1].path;
+            return;
           }
+          si = si + delta;
+          if (si < 0) si = 0;
+          if (si >= STEPS.length) { location.href = ROUTES[1].path; return; }
+          STEPS[si].set(vm);
+          setTimeout(updateLabel, 80);
         } else {
           var ri = currentRoute() + delta;
           if (ri < 0) ri = 0;
