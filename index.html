@@ -166,7 +166,7 @@
         if (isQuizRoute()) {
           var si2 = currentStepIndex();
           btnP.disabled = si2 <= 0;
-          btnN.disabled = si2 >= STEPS.length - 1 || si2 < 0;
+          btnN.disabled = si2 < 0; // nunca desabilita: no último step avança para /v2
         } else {
           var ri2 = currentRoute();
           btnP.disabled = ri2 <= 0;
@@ -179,10 +179,18 @@
           var vm = getVm();
           if (!vm) { alert('Vue ainda não montou. Aguarde a página carregar.'); return; }
           var si = currentStepIndex() + delta;
-          if (si < 0) si = 0;
-          if (si >= STEPS.length) si = STEPS.length - 1;
-          STEPS[si].set(vm);
-          setTimeout(updateLabel, 80);
+          if (si < 0) {
+            // voltar da rota /: vai para a rota anterior (não há nenhuma antes, mas trata por segurança)
+            si = 0;
+            STEPS[si].set(vm);
+            setTimeout(updateLabel, 80);
+          } else if (si >= STEPS.length) {
+            // avançar além do último step: vai para a próxima rota
+            location.href = ROUTES[1].path; // /v2
+          } else {
+            STEPS[si].set(vm);
+            setTimeout(updateLabel, 80);
+          }
         } else {
           var ri = currentRoute() + delta;
           if (ri < 0) ri = 0;
