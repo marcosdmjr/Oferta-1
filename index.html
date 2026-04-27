@@ -78,21 +78,52 @@
                   location.search.indexOf('dev=1') !== -1;
       if (!isDev) return;
 
-      var ROUTES = [
-        { label: '1. Landing',        path: '/' },
-        { label: '2. VSL',            path: '/v2' },
-        { label: '3. Envio de Dados', path: '/enviodosdados' },
-        { label: '4. Assinatura',     path: '/assinatura-poder' },
-        { label: '5. Gerar Ass.',     path: '/g-ass' },
-        { label: '6. Obrigado',       path: '/obrigado-correio' },
+      // ── Mapa de steps do funil na rota / ──────────────────────────────
+      // Cada entrada descreve como forçar a entrada naquele step
+      var STEPS = [
+        { step: 1,   label: 'Gênero',       set: function(vm) { vm.currentStep = 1; } },
+        { step: 2,   label: 'Mês',          set: function(vm) { vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.currentStep = 2; } },
+        { step: 3,   label: 'Dia',          set: function(vm) { vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.animationMonthSum = vm.animationMonthSum || '0+1'; vm.animationMonthName = vm.animationMonthName || 'Janeiro'; vm.animationMonthNumerology = vm.animationMonthNumerology || 1; vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.currentStep = 3; } },
+        { step: 4,   label: 'Década',       set: function(vm) { vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.dayValue = vm.dayValue || '15'; vm.animationDayName = vm.animationDayName || '15'; vm.currentStep = 4; } },
+        { step: 5,   label: 'Ano',          set: function(vm) { vm.decadeValue = vm.decadeValue || 1990; vm.currentStep = 5; if (typeof vm.generatorYears === 'function') vm.generatorYears(); } },
+        { step: 6,   label: 'Estado Civil', set: function(vm) { vm.yearValue = vm.yearValue || 1995; vm.currentStep = 6; } },
+        { step: 7,   label: 'Desafio',      set: function(vm) { vm.civilStatusValue = vm.civilStatusValue || 'solteiro'; vm.currentStep = 7; } },
+        { step: 8,   label: 'Nome',         set: function(vm) { vm.desafioValue = vm.desafioValue || 'amor'; vm.currentStep = 8; } },
       ];
 
-      function getRouter() {
+      // Rotas do funil (páginas diferentes)
+      var ROUTES = [
+        { label: 'Quiz',          path: '/' },
+        { label: 'VSL',           path: '/v2' },
+        { label: 'Envio Dados',   path: '/enviodosdados' },
+        { label: 'Assinatura',    path: '/assinatura-poder' },
+        { label: 'Gerar Ass.',    path: '/g-ass' },
+        { label: 'Obrigado',      path: '/obrigado-correio' },
+      ];
+
+      function getVm() {
         var el = document.getElementById('app');
-        return el && el.__vue__ && el.__vue__.$router;
+        if (!el) return null;
+        var root = el.__vue__;
+        if (!root) return null;
+        // O componente do funil fica em $children[0] na rota /
+        var child = root.$children && root.$children[0];
+        // Verifica se tem currentStep (é o componente do quiz)
+        if (child && typeof child.currentStep !== 'undefined') return child;
+        // Fallback: busca recursivo em $children
+        function find(vm) {
+          if (!vm) return null;
+          if (typeof vm.currentStep !== 'undefined') return vm;
+          for (var i = 0; i < (vm.$children || []).length; i++) {
+            var found = find(vm.$children[i]);
+            if (found) return found;
+          }
+          return null;
+        }
+        return find(root);
       }
 
-      function currentIndex() {
+      function currentRoute() {
         var p = location.pathname;
         for (var i = 0; i < ROUTES.length; i++) {
           if (ROUTES[i].path === p) return i;
@@ -100,131 +131,105 @@
         return -1;
       }
 
-      function goTo(path) {
-        var router = getRouter();
-        if (router) {
-          router.push(path).catch(function(){});
+      function currentStepIndex() {
+        var vm = getVm();
+        if (!vm) return -1;
+        var s = Math.floor(vm.currentStep);
+        for (var i = 0; i < STEPS.length; i++) {
+          if (STEPS[i].step === s) return i;
+        }
+        return -1;
+      }
+
+      function isQuizRoute() {
+        return location.pathname === '/';
+      }
+
+      function updateLabel() {
+        var lbl = document.getElementById('dev-label');
+        var info = document.getElementById('dev-step-info');
+        if (!lbl) return;
+        var ri = currentRoute();
+        if (!isQuizRoute() || ri > 0) {
+          lbl.textContent = ri >= 0 ? ROUTES[ri].label : location.pathname;
+          if (info) info.textContent = '';
         } else {
-          location.href = path;
+          var vm = getVm();
+          var si = currentStepIndex();
+          lbl.textContent = si >= 0 ? STEPS[si].label : location.pathname;
+          if (info) info.textContent = vm ? ('step ' + Math.floor(vm.currentStep) + '/8') : '';
+        }
+        // botões
+        var btnP = document.getElementById('dev-prev');
+        var btnN = document.getElementById('dev-next');
+        if (!btnP || !btnN) return;
+        if (isQuizRoute()) {
+          var si2 = currentStepIndex();
+          btnP.disabled = si2 <= 0;
+          btnN.disabled = si2 >= STEPS.length - 1 || si2 < 0;
+        } else {
+          var ri2 = currentRoute();
+          btnP.disabled = ri2 <= 0;
+          btnN.disabled = ri2 >= ROUTES.length - 1 || ri2 < 0;
         }
       }
 
-      function navigate(delta) {
-        var idx = currentIndex() + delta;
-        if (idx < 0) idx = 0;
-        if (idx >= ROUTES.length) idx = ROUTES.length - 1;
-        goTo(ROUTES[idx].path);
+      function advance(delta) {
+        if (isQuizRoute()) {
+          var vm = getVm();
+          if (!vm) { alert('Vue ainda não montou. Aguarde a página carregar.'); return; }
+          var si = currentStepIndex() + delta;
+          if (si < 0) si = 0;
+          if (si >= STEPS.length) si = STEPS.length - 1;
+          STEPS[si].set(vm);
+          setTimeout(updateLabel, 80);
+        } else {
+          var ri = currentRoute() + delta;
+          if (ri < 0) ri = 0;
+          if (ri >= ROUTES.length) ri = ROUTES.length - 1;
+          location.href = ROUTES[ri].path;
+        }
       }
 
-      function render() {
-        var idx = currentIndex();
-        var label = idx >= 0 ? ROUTES[idx].label : location.pathname;
-        document.getElementById('dev-label').textContent = label;
-        document.getElementById('dev-prev').disabled = idx <= 0;
-        document.getElementById('dev-next').disabled = idx >= ROUTES.length - 1 || idx < 0;
-        var sel = document.getElementById('dev-select');
-        if (sel) sel.value = ROUTES[idx] ? ROUTES[idx].path : '';
-      }
-
-      function init() {
+      function buildBar() {
         if (document.getElementById('dev-nav-bar')) return;
 
         var style = document.createElement('style');
-        style.textContent = [
-          '#dev-nav-bar{',
-          '  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);',
-          '  display:flex;align-items:center;gap:8px;',
-          '  background:rgba(10,10,10,.95);backdrop-filter:blur(10px);',
-          '  border:1px solid rgba(255,255,255,.15);border-radius:40px;',
-          '  padding:8px 18px;z-index:2147483647;',
-          '  font-family:ui-monospace,monospace;font-size:12px;color:#e0e0e0;',
-          '  box-shadow:0 4px 32px rgba(0,0,0,.6);',
-          '  user-select:none;white-space:nowrap;',
-          '}',
-          '#dev-nav-bar button{',
-          '  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);',
-          '  color:#fff;border-radius:50%;width:30px;height:30px;',
-          '  display:flex;align-items:center;justify-content:center;',
-          '  cursor:pointer;font-size:15px;line-height:1;padding:0;flex-shrink:0;',
-          '  transition:background .15s;',
-          '}',
-          '#dev-nav-bar button:hover:not(:disabled){background:rgba(255,255,255,.28);}',
-          '#dev-nav-bar button:disabled{opacity:.25;cursor:not-allowed;}',
-          '#dev-label{min-width:140px;text-align:center;color:#fbbf24;font-weight:700;font-size:12px;}',
-          '#dev-select{',
-          '  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);',
-          '  color:#e0e0e0;border-radius:20px;padding:4px 10px;',
-          '  font-family:ui-monospace,monospace;font-size:11px;cursor:pointer;',
-          '  max-width:160px;',
-          '}',
-          '#dev-badge{',
-          '  background:#fbbf24;color:#000;font-size:10px;font-weight:800;',
-          '  border-radius:20px;padding:2px 8px;letter-spacing:.08em;flex-shrink:0;',
-          '}',
-        ].join('');
+        style.textContent = '#dev-nav-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(8,8,8,.96);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);border-radius:40px;padding:8px 18px;z-index:2147483647;font-family:ui-monospace,monospace;font-size:12px;color:#e0e0e0;box-shadow:0 4px 32px rgba(0,0,0,.7);user-select:none;white-space:nowrap;}' +
+          '#dev-nav-bar button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;padding:0;flex-shrink:0;transition:background .15s;}' +
+          '#dev-nav-bar button:hover:not(:disabled){background:rgba(255,255,255,.28);}' +
+          '#dev-nav-bar button:disabled{opacity:.2;cursor:not-allowed;}' +
+          '#dev-label{min-width:110px;text-align:center;color:#fbbf24;font-weight:700;}' +
+          '#dev-step-info{color:rgba(255,255,255,.4);font-size:10px;}' +
+          '#dev-badge{background:#fbbf24;color:#000;font-size:10px;font-weight:800;border-radius:20px;padding:2px 8px;letter-spacing:.08em;flex-shrink:0;}';
         document.head.appendChild(style);
 
         var bar = document.createElement('div');
         bar.id = 'dev-nav-bar';
-
-        var badge = document.createElement('span');
-        badge.id = 'dev-badge';
-        badge.textContent = 'DEV';
-
-        var btnPrev = document.createElement('button');
-        btnPrev.id = 'dev-prev';
-        btnPrev.title = 'Etapa anterior';
-        btnPrev.innerHTML = '&#8592;';
-
-        var lbl = document.createElement('span');
-        lbl.id = 'dev-label';
-
-        var btnNext = document.createElement('button');
-        btnNext.id = 'dev-next';
-        btnNext.title = 'Próxima etapa';
-        btnNext.innerHTML = '&#8594;';
-
-        var sel = document.createElement('select');
-        sel.id = 'dev-select';
-        sel.title = 'Ir para etapa';
-        ROUTES.forEach(function(r) {
-          var opt = document.createElement('option');
-          opt.value = r.path;
-          opt.textContent = r.label;
-          sel.appendChild(opt);
-        });
-
-        bar.appendChild(badge);
-        bar.appendChild(btnPrev);
-        bar.appendChild(lbl);
-        bar.appendChild(btnNext);
-        bar.appendChild(sel);
+        bar.innerHTML =
+          '<span id="dev-badge">DEV</span>' +
+          '<button id="dev-prev" title="Anterior">&#8592;</button>' +
+          '<span id="dev-label">...</span>' +
+          '<span id="dev-step-info"></span>' +
+          '<button id="dev-next" title="Próximo">&#8594;</button>';
         document.body.appendChild(bar);
 
-        btnPrev.addEventListener('click', function(e) { e.stopPropagation(); navigate(-1); });
-        btnNext.addEventListener('click', function(e) { e.stopPropagation(); navigate(1); });
-        sel.addEventListener('change', function(e) { goTo(this.value); });
+        document.getElementById('dev-prev').addEventListener('click', function(e) { e.stopPropagation(); advance(-1); });
+        document.getElementById('dev-next').addEventListener('click', function(e) { e.stopPropagation(); advance(1); });
 
-        render();
+        // Atualiza label periodicamente para pegar mudanças de step do Vue
+        setInterval(updateLabel, 300);
 
-        // Atualiza label quando o Vue Router muda de rota
+        // Atualiza em mudanças de rota
         var _push = history.pushState.bind(history);
-        history.pushState = function() { _push.apply(history, arguments); setTimeout(render, 80); };
+        history.pushState = function() { _push.apply(history, arguments); setTimeout(updateLabel, 100); };
         var _replace = history.replaceState.bind(history);
-        history.replaceState = function() { _replace.apply(history, arguments); setTimeout(render, 80); };
-        window.addEventListener('popstate', function() { setTimeout(render, 80); });
+        history.replaceState = function() { _replace.apply(history, arguments); setTimeout(updateLabel, 100); };
+        window.addEventListener('popstate', function() { setTimeout(updateLabel, 100); });
       }
 
-      // Aguarda o DOM estar pronto e depois o Vue montar
-      function tryInit() {
-        if (document.body) {
-          init();
-        } else {
-          document.addEventListener('DOMContentLoaded', init);
-        }
-      }
-
-      tryInit();
+      // Aguarda DOM e tenta montar
+      if (document.body) { buildBar(); } else { document.addEventListener('DOMContentLoaded', buildBar); }
     })();
   </script>
 </body>
