@@ -78,18 +78,36 @@
                   location.search.indexOf('dev=1') !== -1;
       if (!isDev) return;
 
-      // ── Mapa de steps do funil na rota / ──────────────────────────────
-      // Cada entrada descreve como forçar a entrada naquele step
+      // ── Mapa de todos os estados do funil na rota / ───────────────────
+      // Inclui os steps do quiz (1-8) e os estados pós-quiz (video, email, etc.)
       var STEPS = [
-        { step: 1,   label: 'Gênero',       set: function(vm) { vm.currentStep = 1; } },
-        { step: 2,   label: 'Mês',          set: function(vm) { vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.currentStep = 2; } },
-        { step: 3,   label: 'Dia',          set: function(vm) { vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.animationMonthSum = vm.animationMonthSum || '0+1'; vm.animationMonthName = vm.animationMonthName || 'Janeiro'; vm.animationMonthNumerology = vm.animationMonthNumerology || 1; vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.currentStep = 3; } },
-        { step: 4,   label: 'Década',       set: function(vm) { vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.dayValue = vm.dayValue || '15'; vm.animationDayName = vm.animationDayName || '15'; vm.currentStep = 4; } },
-        { step: 5,   label: 'Ano',          set: function(vm) { vm.decadeValue = vm.decadeValue || 1990; vm.currentStep = 5; if (typeof vm.generatorYears === 'function') vm.generatorYears(); } },
-        { step: 6,   label: 'Estado Civil', set: function(vm) { vm.yearValue = vm.yearValue || 1995; vm.currentStep = 6; } },
-        { step: 7,   label: 'Desafio',      set: function(vm) { vm.civilStatusValue = vm.civilStatusValue || 'solteiro'; vm.currentStep = 7; } },
-        { step: 8,   label: 'Nome',         set: function(vm) { vm.desafioValue = vm.desafioValue || 'amor'; vm.currentStep = 8; }, last: true },
+        { label: 'Gênero',       match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 1; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.currentStep = 1; } },
+        { label: 'Mês',          match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 2; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.currentStep = 2; } },
+        { label: 'Dia',          match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 3; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.genderValue = vm.genderValue || 'feminino'; vm.userSex = vm.userSex || 'feminino'; vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.currentStep = 3; } },
+        { label: 'Década',       match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 4; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.monthValue = vm.monthValue || { name:'Janeiro', number:'01', numerology:1, animationText:'0+1' }; vm.dayValue = vm.dayValue || '15'; vm.currentStep = 4; } },
+        { label: 'Ano',          match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 5; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.decadeValue = vm.decadeValue || 1990; vm.currentStep = 5; if (typeof vm.generatorYears === 'function') vm.generatorYears(); } },
+        { label: 'Estado Civil', match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 6; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.yearValue = vm.yearValue || 1995; vm.currentStep = 6; } },
+        { label: 'Desafio',      match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 7; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.civilStatusValue = vm.civilStatusValue || 'solteiro'; vm.currentStep = 7; } },
+        { label: 'Nome',         match: function(vm) { return vm.section1 && Math.floor(vm.currentStep) === 8; }, set: function(vm) { resetStates(vm); vm.section1 = true; vm.desafioValue = vm.desafioValue || 'amor'; vm.currentStep = 8; } },
+        { label: 'Video 1',      match: function(vm) { return vm.backgroundVSL && !vm.parte2 && !vm.parte3 && !vm.parte4 && !vm.parte5; }, set: function(vm) { resetStates(vm); vm.backgroundVSL = true; vm.section1 = false; vm.loadingBlock = false; vm.numeroDestinoOficial = vm.numeroDestinoOficial || 1; } },
+        { label: 'Email',        match: function(vm) { return vm.parte2; }, set: function(vm) { resetStates(vm); vm.parte2 = true; vm.showEmailPopup = true; vm.backgroundVSL = false; vm.section1 = false; } },
+        { label: 'Loading',      match: function(vm) { return vm.parte3 && !vm.parte4 && !vm.parte5; }, set: function(vm) { resetStates(vm); vm.parte3 = true; vm.section1 = false; } },
+        { label: 'Pitch',        match: function(vm) { return vm.parte4; }, set: function(vm) { resetStates(vm); vm.parte4 = true; vm.section1 = false; } },
+        { label: 'VSL Final',    match: function(vm) { return vm.parte5 && !vm.cta; }, set: function(vm) { resetStates(vm); vm.parte5 = true; vm.cta = false; vm.section1 = false; } },
+        { label: 'Botao Compra', match: function(vm) { return vm.parte5 && vm.cta; }, set: function(vm) { resetStates(vm); vm.parte5 = true; vm.cta = true; vm.section1 = false; } },
       ];
+
+      function resetStates(vm) {
+        vm.section1 = false;
+        vm.loadingBlock = false;
+        vm.backgroundVSL = false;
+        vm.parte2 = false;
+        vm.showEmailPopup = false;
+        vm.parte3 = false;
+        vm.parte4 = false;
+        vm.parte5 = false;
+        vm.cta = false;
+      }
 
       // Rotas do funil (páginas diferentes) — ordem real de navegação
       var ROUTES = [
@@ -134,9 +152,8 @@
       function currentStepIndex() {
         var vm = getVm();
         if (!vm) return -1;
-        var s = Math.floor(vm.currentStep);
         for (var i = 0; i < STEPS.length; i++) {
-          if (STEPS[i].step === s) return i;
+          if (STEPS[i].match(vm)) return i;
         }
         return -1;
       }
@@ -157,7 +174,7 @@
           var vm = getVm();
           var si = currentStepIndex();
           lbl.textContent = si >= 0 ? STEPS[si].label : location.pathname;
-          if (info) info.textContent = vm ? ('step ' + Math.floor(vm.currentStep) + '/8') : '';
+          if (info) info.textContent = si >= 0 ? (si + 1) + '/' + STEPS.length : '';
         }
         // botões
         var btnP = document.getElementById('dev-prev');
@@ -166,7 +183,7 @@
         if (isQuizRoute()) {
           var si2 = currentStepIndex();
           btnP.disabled = si2 <= 0;
-          btnN.disabled = si2 < 0; // nunca desabilita: no último step avança para /v2
+          btnN.disabled = si2 < 0;
         } else {
           var ri2 = currentRoute();
           btnP.disabled = ri2 <= 0;
@@ -178,13 +195,7 @@
         if (isQuizRoute()) {
           var vm = getVm();
           if (!vm) { alert('Vue ainda não montou. Aguarde a página carregar.'); return; }
-          var si = currentStepIndex();
-          // Se estamos no último step e avançando, pula direto para a próxima rota
-          if (delta > 0 && si >= 0 && STEPS[si].last) {
-            location.href = ROUTES[1].path;
-            return;
-          }
-          si = si + delta;
+          var si = currentStepIndex() + delta;
           if (si < 0) si = 0;
           if (si >= STEPS.length) { location.href = ROUTES[1].path; return; }
           STEPS[si].set(vm);
