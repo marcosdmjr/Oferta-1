@@ -94,35 +94,7 @@
         { label: 'Loading',      match: function(vm) { return vm.parte3 && !vm.parte4 && !vm.parte5; }, set: function(vm) { resetStates(vm); vm.parte3 = true; vm.section1 = false; } },
         { label: 'Pitch',        match: function(vm) { return vm.parte4; }, set: function(vm) { resetStates(vm); vm.parte4 = true; vm.section1 = false; } },
         { label: 'VSL Final',    match: function(vm) { return vm.parte5 && !vm.cta; }, set: function(vm) { resetStates(vm); vm.parte5 = true; vm.cta = false; vm.section1 = false; } },
-        { label: 'Botao Compra', match: function(vm) { return vm.parte5 && vm.cta; }, set: function(vm) {
-          resetStates(vm);
-          vm.parte5 = true;
-          vm.section1 = false;
-          vm.cta = true;
-          // A sectionCta é criada dinamicamente pelo GSAP/JSON ao longo da animação.
-          // Via DEV, injetamos ela diretamente no DOM com o estado visual correto.
-          setTimeout(function() {
-            var existing = document.querySelector('.cc13912839119900000');
-            if (existing) {
-              // Já existe — remove transforms do GSAP e torna visível
-              existing.style.cssText = 'visibility:visible;opacity:1;display:block;transform:none;position:relative;width:100%;';
-              return;
-            }
-            // Não existe — cria e injeta diretamente no #app como overlay sobre o vídeo
-            var app = document.getElementById('app');
-            if (!app) return;
-            var section = document.createElement('section');
-            section.className = 'cc13912839119900000';
-            section.style.cssText = 'position:fixed;bottom:0;left:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px;background:rgba(0,0,0,.85);z-index:9999;';
-            section.innerHTML =
-              '<div class="c13910b010213000" style="width:100%;text-align:center;">' +
-              '<a class="b0123912090yt1039120310" href="#" style="display:inline-block;background:#19a10b;color:#fff;padding:14px 32px;border-radius:30px;font-weight:800;font-size:1rem;text-transform:uppercase;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25);">' +
-              'QUERO MINHA LEITURA AGORA' +
-              '</a>' +
-              '</div>';
-            app.appendChild(section);
-          }, 80);
-        } },
+        { label: 'Botao Compra', match: function(vm) { return vm.parte5 && vm.cta; }, set: function(vm) { resetStates(vm); vm.parte5 = true; vm.cta = true; vm.section1 = false; } },
       ];
 
       function resetStates(vm) {
@@ -135,9 +107,6 @@
         vm.parte4 = false;
         vm.parte5 = false;
         vm.cta = false;
-        // Remove elemento CTA injetado pelo DEV (se existir)
-        var devCta = document.querySelector('.cc13912839119900000[style*="position:fixed"]');
-        if (devCta) devCta.remove();
       }
 
       // Rotas do funil (páginas diferentes) — ordem real de navegação
@@ -279,8 +248,6 @@
       // Aguarda DOM e tenta montar
       if (document.body) { buildBar(); } else { document.addEventListener('DOMContentLoaded', buildBar); }
     })();
-
-    
   </script>
 </body>
 </html>
